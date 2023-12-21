@@ -46,6 +46,41 @@ def armijo_nesterov(func, dfunc, x, y, a_init = None):
         
     return a
 
+def armijo_nesterov2(func, dfunc, x, y, a_init = None):
+    
+    a = 1
+    if a_init is not None:
+        a = a_init
+ 
+    xnew = y - a * dfunc(y)
+    dxnorm = np.linalg.norm(x - xnew) ** 2
+    fx = func(x)
+    dot = np.dot(dfunc(x),(xnew - x)) 
+    l = fx + dot + 1/(2*a) * dxnorm
+    
+    cond = func( xnew ) > l
+
+    ctr = 0
+    while cond:
+        a = a / 2
+        xnew = y - a * dfunc(y)
+        dxnorm = np.linalg.norm(x - xnew) ** 2
+        fx = func(x)
+        dot = np.dot(dfunc(x),(xnew - x)) 
+        l = fx + dot + 1/(2*a) * dxnorm
+        
+        cond = func( xnew ) > l
+
+        # loop control
+        ctr += 1
+        if cond == False:
+            ctr = 0
+        if ctr > 99 or a < 1e-32:
+            print("yes")
+            return None
+
+    return a
+
 def nesterov_momentum(func, dfunc, t, lamda = None, x_init = None,
                       line_search = True, max_iter = 1000, tol = 1e-6):
     if x_init is None:
@@ -94,7 +129,20 @@ def nesterov_momentum(func, dfunc, t, lamda = None, x_init = None,
         y_i = y_i1
         lamda_i = lamda_i1
         
-    return x_history
+    if line_search and lamda is not None: # line search const param
+        print(f"Nesterov did not converge after {i+1} iterations:")
+        print(f"Min value: {func(x_i1)} Gradient Norm: {grad_norm}\n")
+    elif line_search and lamda is None: # line search not const param
+        print(f"Nesterov did not converge after {i+1} iterations:")
+        print(f"Min value: {func(x_i1)} Gradient Norm: {grad_norm}\n")
+    elif not line_search and lamda is None: # not ls and not const param
+        print(f"Nesterov w/o line search did not converge after {i+1} iterations:")
+        print(f"Min value: {func(x_i1)} Gradient Norm: {grad_norm}\n")
+    elif not line_search and lamda is not None: # no.
+        print(f"Nesterov w/o line search and const. param. did not converge after {i+1} iterations:")
+        print(f"Min value: {func(x_i1)} Gradient Norm: {grad_norm}\n")
+                    
+    return x_history 
 
 
 def gradient_descent(func, dfunc, lr = 0.1, x_init = None,

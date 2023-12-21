@@ -38,7 +38,7 @@ if __name__ == "__main__":
         styblinski_tang_2d,
         styblinski_tang_gradient_2d,
         x_init = initial_guess,
-        t = 0.006
+        t = 0.5
     )
     
     const_param_optimization_history = tools.nesterov_momentum(
@@ -47,7 +47,7 @@ if __name__ == "__main__":
         x_init = initial_guess,
         t = 0.025,
         lamda = 37/3,# (l-1)/(l+1) = percentage, here percentage = 85%
-                     # in order to compare with GD w momentum
+                      # in order to compare with GD w momentum
         line_search = False,
     )
     

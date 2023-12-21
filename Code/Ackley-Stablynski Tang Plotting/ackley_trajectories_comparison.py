@@ -49,7 +49,7 @@ if __name__ == "__main__":
         ackley,
         ackley_gradient,
         x_init = initial_guess,
-        t = 0.6 # 0.6 best but does not converge
+        t = 0.5 
     )
     
     const_param_optimization_history = tools.nesterov_momentum(
@@ -115,7 +115,7 @@ if __name__ == "__main__":
     wo_ls_optimization_history = np.array(wo_ls_optimization_history)
     
     plt.plot(nesterov_optimization_history[:, 0],
-             nesterov_optimization_history[:, 1],
+              nesterov_optimization_history[:, 1],
               color = 'red', marker = 'x', linestyle = 'dashed',
               markersize = 6, label='NAGD w LS & varying param Trajectory')
     
