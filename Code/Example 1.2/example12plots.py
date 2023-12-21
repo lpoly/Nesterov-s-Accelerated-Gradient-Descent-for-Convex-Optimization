@@ -50,16 +50,56 @@ def armijo_nesterov(func, dfunc, x, y, a_init = None):
     if a_init is not None:
         a = a_init
         
-    xnew = y - a * dfunc(*y)    
+    dxnorm = np.linalg.norm(y - a * dfunc(*y) - x) ** 2
+    fx = func(*x)
+    dot = np.dot(dfunc(*x),(y - a * dfunc(*y)) - x) 
+    l = fx + dot + 1/(2*a) * dxnorm
+    cond = func(*(y - a * dfunc(*y))) > l
+    ctr = 0
+    
+    while cond:
+        a = a / 2
+            
+        dxnorm = np.linalg.norm(y - a * dfunc(*y) - x) ** 2
+        fx = func(*x)
+        dot = np.dot(dfunc(*x),(y - a * dfunc(*y)) - x) 
+        l = fx + dot + 1/(2*a) * dxnorm
+        
+        cond = func(*(y - a * dfunc(*y))) > l
+
+        # loop control
+        ctr += 1
+        if cond == False:
+            # print()
+            ctr = 0
+        if ctr > 99 or a < 1e-32:
+            return None
+
+    return a
+
+def armijo_nesterov2(func, dfunc, x, y, a_init = None):
+    
+    a = 1
+    if a_init is not None:
+        a = a_init
+        
     dfnorm = np.linalg.norm(dfunc(*x)) ** 2
     fx = func(*x)
     l = fx + a/2 * dfnorm
-    cond = func(*(xnew)) > l
-
+    cond = func(*(y - a * dfunc(*y))) > l
+    ctr = 0
     while cond:
         a = a / 2
         l = fx - a/2 * dfnorm
         cond = func(*(y - a * dfunc(*y))) > l
+
+        # loop control
+        ctr += 1
+        if cond == False:
+            # print()
+            ctr = 0
+        if ctr > 99 or a < 1e-32:
+            return None
 
     return a
 
@@ -72,7 +112,7 @@ def nesterov_momentum(func, dfunc, t = None, x_init = None, max_iter = 1000,
     armijo = False    
     if t is None:
         armijo = True
-        t = 1
+        t = .05
         
     lamda_i = 0
     x_i = y_i = x_init
