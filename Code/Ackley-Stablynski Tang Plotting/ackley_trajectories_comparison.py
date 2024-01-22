@@ -49,7 +49,8 @@ if __name__ == "__main__":
         ackley,
         ackley_gradient,
         x_init = initial_guess,
-        t = 0.5 
+        t = 0.2,
+        dec_stepsize = False
     )
     
     const_param_optimization_history = tools.nesterov_momentum(
@@ -65,10 +66,9 @@ if __name__ == "__main__":
         ackley,
         ackley_gradient,
         x_init = initial_guess,
-        t = 0.13,
+        t = 0.1,
         line_search = False
     )
-    
     
     momentum_optimization_history = tools.gradient_descent_with_momentum(
         ackley,
@@ -84,7 +84,6 @@ if __name__ == "__main__":
         x_init = initial_guess,  
         lr = 0.1  
     )
-    
     
     
     # Plot the contour of the Ackley function

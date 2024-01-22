@@ -28,6 +28,7 @@ Z = styblinski_tang_2d(X, Y)
 fig = plt.figure()
 ax = fig.add_subplot(111, projection='3d')
 ax.plot_surface(X, Y, Z, cmap='magma')
+plt.savefig("St_Tang_plot.png", dpi=300)
 
 # ax.set_xlabel(r'$x$')
 # ax.set_ylabel(r'$y$')

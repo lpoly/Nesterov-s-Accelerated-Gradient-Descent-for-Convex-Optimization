@@ -38,7 +38,8 @@ if __name__ == "__main__":
         styblinski_tang_2d,
         styblinski_tang_gradient_2d,
         x_init = initial_guess,
-        t = 0.5
+        t = 0.03, #0.065721 global
+        dec_stepsize= False
     )
     
     const_param_optimization_history = tools.nesterov_momentum(
@@ -64,7 +65,8 @@ if __name__ == "__main__":
         styblinski_tang_gradient_2d,
         x_init = initial_guess,
         beta=0.85,
-        lr=0.025
+        lr=0.025,
+        line_search = True
     )
     
     
@@ -91,7 +93,7 @@ if __name__ == "__main__":
     momentum_optimization_history = np.array(momentum_optimization_history)
     
     plt.plot(nesterov_optimization_history[:, 0],
-             nesterov_optimization_history[:, 1],
+              nesterov_optimization_history[:, 1],
               color = 'red', marker = 'x', linestyle = 'dashed',
               markersize = 6, label='NAGD w LS & varying param Trajectory')
     
@@ -110,5 +112,8 @@ if __name__ == "__main__":
               color = 'deepskyblue', marker = 'x', linestyle = 'dashed',
               markersize = 6, label = 'GD w Momentum Trajectory')
     
+
     plt.legend(loc = "upper right")
+    plt.savefig("COMPARISON.png", dpi=300)
+
     plt.show()

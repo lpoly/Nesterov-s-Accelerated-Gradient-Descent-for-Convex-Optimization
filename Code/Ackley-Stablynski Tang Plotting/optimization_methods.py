@@ -19,35 +19,21 @@ Winter 2023
 import numpy as np
 
 
+
 def armijo_nesterov(func, dfunc, x, y, a_init = None):
-    a = 1
-    if a_init is not None:
-        a = a_init
+    """
+    Armijo line search algorithm adapted for Nesterov's method.
 
-    dfnorm = np.linalg.norm(dfunc(x)) ** 2
-    fx = func(x)
-    l = fx + a/2  * dfnorm
-    cond = func(y - a * dfunc(y)) > l
-    ctr = 0
-    
-    while cond:
-        a = a / 2
-        # print(a)
-        l = fx - a/2 * dfnorm
-        cond = func(y - a * dfunc(y)) > l
-        
-        # loop control
-        ctr += 1
-        if cond == False:
-            # print()
-            ctr = 0
-        if ctr > 99 or a < 1e-32:
-            return None
-        
-    return a
+    Parameters:
+    - func: The objective function to be minimized.
+    - dfunc: The derivative of the objective function.
+    - x: The current point in the parameter space.
+    - y: The point to perform the line search from (usually the lookahead point in Nesterov's method).
+    - a_init: Initial step size (optional).
 
-def armijo_nesterov2(func, dfunc, x, y, a_init = None):
-    
+    Returns:
+    - The calculated step size.
+    """
     a = 1
     if a_init is not None:
         a = a_init
@@ -76,29 +62,92 @@ def armijo_nesterov2(func, dfunc, x, y, a_init = None):
         if cond == False:
             ctr = 0
         if ctr > 99 or a < 1e-32:
+            return None
+
+    return a
+
+def armijo_nesterov2(func, dfunc, x, y, a_init = None):
+    """
+    A variant of the Armijo line search algorithm for Nesterov's method.
+
+    Parameters:
+    - Same as armijo_nesterov.
+
+    Returns:
+    - The calculated step size or None if line search fails.
+    """
+    a = 1
+    if a_init is not None:
+        a = a_init
+ 
+    xnew = y
+    dxnorm = np.linalg.norm(x - xnew) ** 2
+    fx = func(x)
+    dot = np.dot(dfunc(x),(xnew - x)) 
+    l = fx + dot + 1/(2*a) * dxnorm
+    
+    cond = func( xnew ) > l
+
+    ctr = 0
+    while cond:
+        a = a / 2
+        xnew = y
+        dxnorm = np.linalg.norm(x - xnew) ** 2
+        fx = func(x)
+        dot = np.dot(dfunc(x),(xnew - x)) 
+        l = fx + dot + 1/(2*a) * dxnorm
+        
+        cond = func( xnew ) > l
+
+        # loop control
+        ctr += 1
+        if cond == False:
+            ctr = 0
+        if ctr > 99 or a < 1e-32:
             print("yes")
             return None
 
     return a
 
-def nesterov_momentum(func, dfunc, t, lamda = None, x_init = None,
-                      line_search = True, max_iter = 1000, tol = 1e-6):
+def nesterov_momentum(func, dfunc, t, lamda=None, x_init=None,
+                      line_search=True, dec_stepsize = True, max_iter=4000,
+                      tol=1e-6, stop_criterion=0):
+    """
+    Nesterov Accelerated Gradient Descent (NAGD) with optional line search.
+
+    Parameters:
+    - func: The objective function to be minimized.
+    - dfunc: The derivative of the objective function.
+    - t: Initial step size.
+    - lamda: Momentum term (optional).
+    - x_init: Initial starting point (optional).
+    - line_search: Whether to use line search.
+    - dec_stepsize: Whether to decrease the step size over iterations.
+    - max_iter: Maximum number of iterations.
+    - tol: Tolerance for stopping criterion.
+    - stop_criterion: The criterion for stopping (0, 1, 2, or 3).
+
+    Returns:
+    - A history of points visited during the optimization process.
+    """
     if x_init is None:
         x_init = np.random.rand(len(x_init))
-        
+
     lamda_i = lamda_i1 = 0
     x_i = x_i1 = y_i = x_init
     x_history = [x_i]
 
+    t_init  = t
+    
     for i in range(max_iter):
-        if line_search :#and i > 0:
-            t = armijo_nesterov(func, dfunc, x_i, y_i, a_init=t)    
-            if t == None:
-                grad_norm = np.linalg.norm(dfunc(x_i1))
-                print("Line Search did not terminate. Parameter Underflow encountered")
-                print(f"Nesterov terminated after {i+1} iterations:")
-                print(f"Min value: {func(x_i1)} Gradient Norm: {grad_norm}\n")
-                return x_history
+        if line_search and dec_stepsize:
+            t = armijo_nesterov(func, dfunc, x_i, y_i, a_init = t)
+            if t is None:
+                break
+        elif line_search and not dec_stepsize:
+            t = armijo_nesterov(func, dfunc, x_i, y_i, a_init = t_init)
+            if t is None:
+                break
 
         x_i1 = y_i - t * dfunc(y_i)
         if lamda is None:
@@ -109,44 +158,48 @@ def nesterov_momentum(func, dfunc, t, lamda = None, x_init = None,
 
         x_history.append(x_i1)
 
-        grad_norm = np.linalg.norm(dfunc(x_i1))
-        if grad_norm < tol:
-            if not line_search:
-                print(f"Nesterov w/o line search Converged after {i+1} iterations:")
-                print(f"Min value: {func(x_i1)} Gradient Norm: {grad_norm}\n")
-                if lamda is not None:
-                    print(f"Nesterov w/o line search and const. param. Converged after {i+1} iterations:")
-                    print(f"Min value: {func(x_i1)} Gradient Norm: {grad_norm}\n")
-                    
-            else:
-                if lamda is not None:
-                    print(f"Nesterov Converged after {i+1} iterations:")
-                    print(f"Min value: {func(x_i1)} Gradient Norm: {grad_norm}\n")
-                    
-            return x_history
+        # Stopping criterion
+        if stop_criterion == 0:
+            criterion = np.linalg.norm(func(x_i1) - func(x_i))
+        elif stop_criterion == 1:
+            criterion = np.linalg.norm(x_i1 - x_i)
+        elif stop_criterion == 2:
+            criterion = np.linalg.norm(dfunc(x_i1))
+        elif stop_criterion == 3:
+            criterion = np.linalg.norm(func(x_i1))
+
+        if criterion < tol and i > 1:
+            break
 
         x_i = x_i1
         y_i = y_i1
         lamda_i = lamda_i1
-        
-    if line_search and lamda is not None: # line search const param
-        print(f"Nesterov did not converge after {i+1} iterations:")
-        print(f"Min value: {func(x_i1)} Gradient Norm: {grad_norm}\n")
-    elif line_search and lamda is None: # line search not const param
-        print(f"Nesterov did not converge after {i+1} iterations:")
-        print(f"Min value: {func(x_i1)} Gradient Norm: {grad_norm}\n")
-    elif not line_search and lamda is None: # not ls and not const param
-        print(f"Nesterov w/o line search did not converge after {i+1} iterations:")
-        print(f"Min value: {func(x_i1)} Gradient Norm: {grad_norm}\n")
-    elif not line_search and lamda is not None: # no.
-        print(f"Nesterov w/o line search and const. param. did not converge after {i+1} iterations:")
-        print(f"Min value: {func(x_i1)} Gradient Norm: {grad_norm}\n")
-                    
-    return x_history 
+
+    # Print statements outside the loop to handle all cases
+    grad_norm = np.linalg.norm(dfunc(x_i1))
+    status = "converged" if criterion < tol else "did not converge"
+    ls_status = "w/o line search" if not line_search else ""
+    param_status = "w const. param." if lamda is not None else ""
+
+    print(f"Nesterov {ls_status} {param_status} {status} after {i+1} iterations:")
+    print(f"Min value: {func(x_i1)} Gradient Norm: {grad_norm}\n")
+
+    return x_history
 
 
-def gradient_descent(func, dfunc, lr = 0.1, x_init = None,
-                     max_iter = 1000, tol = 1e-6):
+
+def gradient_descent(func, dfunc, lr=0.1, x_init=None, max_iter=50000,
+                     tol=1e-6, line_search=False):
+    """
+    Vanilla Gradient Descent with optional line search.
+
+    Parameters:
+    - Same as nesterov_momentum except no lamda and dec_stepsize.
+
+    Returns:
+    - A history of points visited during the optimization process.
+    """
+    
     if x_init is None:
         x_init = np.random.rand(len(x_init))
 
@@ -154,11 +207,15 @@ def gradient_descent(func, dfunc, lr = 0.1, x_init = None,
     x_history = [x_i]
 
     for i in range(max_iter):
-        x_i1 = x_i - lr * dfunc(x_i)
+        if line_search:
+            lr = armijo_nesterov(func, dfunc, x_i, x_i, lr)
+            if lr is None:
+                break
 
+        x_i1 = x_i - lr * dfunc(x_i)
         x_history.append(x_i1)
 
-        grad_norm = np.linalg.norm(dfunc(x_i1))
+        grad_norm = np.linalg.norm(func(x_i1) - func(x_i))
         if grad_norm < tol:
             print(f"Vanilla Gradient Descent Converged after {i+1} iterations:")
             print(f"Min value: {func(x_i1)} Gradient Norm: {grad_norm}\n")
@@ -168,8 +225,25 @@ def gradient_descent(func, dfunc, lr = 0.1, x_init = None,
 
     return x_history
 
-def gradient_descent_with_momentum(func, dfunc, beta = 0.9, lr = 0.1,
-                                   x_init = None, max_iter = 1000, tol = 1e-6):
+
+def gradient_descent_with_momentum(func, dfunc, beta=0.9, lr=0.1, x_init=None,
+                                   max_iter=5000, tol=1e-6, line_search=False):
+    """
+    Gradient Descent with Momentum.
+
+    Parameters:
+    - func: The objective function to be minimized.
+    - dfunc: The derivative of the objective function.
+    - beta: Momentum coefficient.
+    - lr: Learning rate or initial step size.
+    - x_init: Initial starting point (optional).
+    - max_iter: Maximum number of iterations.
+    - tol: Tolerance for stopping criterion.
+    - line_search: Whether to use line search.
+
+    Returns:
+    - A history of points visited during the optimization process.
+    """
     if x_init is None:
         x_init = np.random.rand(len(x_init))
 
@@ -178,12 +252,17 @@ def gradient_descent_with_momentum(func, dfunc, beta = 0.9, lr = 0.1,
     x_history = [x_i]
 
     for i in range(max_iter):
+        if line_search:
+            lr_temp = armijo_nesterov(func, dfunc, x_i, x_i, lr)
+            if lr_temp is None:
+                break
+            lr = lr_temp
+
         v_i = beta * v_i + lr * dfunc(x_i)
         x_i1 = x_i - v_i
-
         x_history.append(x_i1)
 
-        grad_norm = np.linalg.norm(dfunc(x_i1))
+        grad_norm = np.linalg.norm(func(x_i1) - func(x_i))
         if grad_norm < tol:
             print(f"Gradient Descent with Momentum Converged after {i+1} iterations:")
             print(f"Min value: {func(x_i1)} Gradient Norm: {grad_norm}\n")
