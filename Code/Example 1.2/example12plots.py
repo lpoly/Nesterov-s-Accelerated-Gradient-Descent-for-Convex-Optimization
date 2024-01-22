@@ -112,7 +112,7 @@ def nesterov_momentum(func, dfunc, t = None, x_init = None, max_iter = 1000,
     armijo = False    
     if t is None:
         armijo = True
-        t = .05
+        t = .5
         
     lamda_i = 0
     x_i = y_i = x_init
@@ -155,7 +155,7 @@ def steepest_descent(func, dfunc, t = None, x_init = None, max_iter=1000,
         gradient = dfunc(*x_i)
         
         if armijo:
-            t = armijo_line_search(func, dfunc, x_i, -gradient, 0.5)
+            t = armijo_line_search(func, dfunc, x_i, -gradient, 0.1)
             
         x_i1 = x_i - t * gradient
         
