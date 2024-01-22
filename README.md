@@ -21,7 +21,6 @@ This repository contains implementations of various optimization algorithms incl
 
 This repository provides implementations of various optimization algorithms, including Nesterov Accelerated Gradient Descent (NAGD), Gradient Descent, and Gradient Descent with Momentum, along with line search algorithms following Armijo's principles.
 
-### Example Usage
 
 ## Example Usage
 
